@@ -1,5 +1,5 @@
 from ctypes import *
-
+g = 0
 awesome = cdll.LoadLibrary("./GoCode/awesome.so")
 awesome.Add.argtypes = [c_int, c_int]
 print("awesome.Add(12,99) = %d" % awesome.Add(12,99))
