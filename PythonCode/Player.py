@@ -1,15 +1,14 @@
 import pygame as pg
 from pygame import Color
 
-class Cursor(pg.sprite.Sprite):
+class Cursor():
     
-    def __init__(self, size:int):
-        pg.sprite.Sprite.__init__(self)
+    def __init__(self, size:int, offset:int, window_size):
         
         self.size = size
 
-        self.x = 1000-size/2
-        self.y = 1000-size/2
+        self.x = window_size/2 - size/2 - offset
+        self.y = window_size/2 - size/2 - offset
         
     def move(self, speed_x:int, speed_y:int):
         self.x += speed_x
@@ -27,13 +26,13 @@ class Cursor(pg.sprite.Sprite):
 
 class Camera:
     
-    def __init__(self, speed):
+    def __init__(self, speed:int, offset, window_size):
         self.speed = speed
         
         self.x_speed = 0
         self.y_speed = 0
         
-        self._screen_update = pg.rect.Rect(0,0,1500,1200)
+        self._screen_update = pg.rect.Rect(0,0,window_size-offset,window_size-offset)
         
     def edit_speed(self,x,y):
         self.x_speed = x*self.speed
