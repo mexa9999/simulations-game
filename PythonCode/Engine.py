@@ -157,25 +157,6 @@ class Text(pg.sprite.Sprite):
         self.color = color if color is not None else self.color
         self.image = self.font.render(text, True, self.color)
         self.rect = self.image.get_rect(center=self.position)
-    
-class Text_button(pg.sprite.Sprite):
-    
-    def __init__(self, text:str, color:pg.color.Color | tuple[int,int,int], position:tuple[int,int], command:str, size:int = 48, font=None):
-        pg.sprite.Sprite.__init__(self)
-        
-        self.position = position
-        self.command = command
-        
-        self.edit_font(font, size)
-        self.edit_text(text, color)
-    
-    def edit_font(self, font, size):
-        self.font = pg.font.Font(font, size)
-        
-    def edit_text(self, text, color = None):
-        self.color = color if color is not None else self.color
-        self.image = self.font.render(text, True, self.color)
-        self.rect = self.image.get_rect(center=self.position)
         
 class Button(pg.sprite.Sprite):
     
@@ -198,18 +179,17 @@ class Button(pg.sprite.Sprite):
         
 class Sprite(pg.sprite.Sprite):
     
-    def edit_image(self, image_path, size):
-        self.image_i = pg.image.load(image_path).convert_alpha()
-        self.image_i = pg.transform.scale(self.image_i, (200,100))
-        self.image_m = pg.surface.Surface(self.image_i.get_size()).convert_alpha()
-        self.image_m.fill((0,0, 255))
-        self.image = self.image_i.copy()
-        self.rect = self.image_i.get_rect(center=self.position)
-        
-        self.image_i.blit(self.image_m, (0,0), special_flags=BLEND_MULT)
+    def edit_image(self, image_path, position, size):
+        self.position = position
+        self.standart_image = pg.image.load(image_path).convert_alpha()
+        self.resize_image = pg.transform.scale(self.image_i, size)
+        self.rect = self.resize_image.get_rect(center=self.position)
     
-    def update(self,x):
+    def update(self):
+        '''
         self.image = pg.transform.rotate(self.image_i, round(math.degrees(x)-90))
         self.position[0] += 10*math.sin(x)
         self.position[1] += 10*math.cos(x)
         self.rect = self.image.get_rect(center=self.position)
+        '''
+        

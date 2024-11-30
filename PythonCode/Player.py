@@ -28,15 +28,20 @@ class Camera:
     
     def __init__(self, speed:int, offset, window_size):
         self.speed = speed
-        
+        self.offset = offset
         self.x_speed = 0
         self.y_speed = 0
         
         self._screen_update = pg.rect.Rect(0,0,window_size-offset,window_size-offset)
         
     def edit_speed(self,x,y):
-        self.x_speed = x*self.speed
-        self.y_speed = y*self.speed
+        if self._screen_update.x-self.offset > 0 and x < 0 :
+            self.x_speed = x*self.speed
+        if self._screen_update.x+self.offset < 0 and x > 0:
+            self.x_speed = x*self.speed
+        if self._screen_update.y-self.offset > 0 or y > 0:
+            self.y_speed = y*self.speed
+        print(self._screen_update.x)
         
     def move(self):
         self._screen_update.move_ip(self.x_speed, self.y_speed)
