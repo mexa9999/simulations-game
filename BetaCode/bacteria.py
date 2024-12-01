@@ -2,48 +2,88 @@ import random
 import numpy as np
 from abc import ABC, abstractmethod
 from typing import Dict, Type, Tuple
+from bitarray import bitarray
+from copy import deepcopy
+from functools import cached_property
+
+class SubGen:
+    
+    def __init__(self, size, coef=0.1, bit = None):
+        self.bitaray = bitarray(bin(random.getrandbits(size))[2:].zfill(size)) if bit is None else bit
+        self.size = size
+        self.coef = coef
+        
+        
+    def bit_mutate(self, data):
+        index = random.randrange(self.size)
+        data[index] = not data[index]
+        return data
+
+    def segment_mutate(self, data):
+        g =random.randrange(1, self.size-1)
+        data[g-1:g+2] = bitarray(bin(random.getrandbits(3))[2:].zfill(3))
+        return data
+
+    def segment_invert(self, data):
+        g =random.randrange(1, self.size-2)
+        h = data[g-1:g+2]
+        h.invert()
+        data[g-1:g+2] = h
+        return data
+    
+    def reproduct(self):
+        data = self.bitaray.copy()
+        if random.random() <= 0.5:
+            data = self.bit_mutate(data)
+        if random.random() <= 0.25:
+            data = self.segment_invert(data)
+        if random.random() <= 0.1:
+            data = self.segment_mutate(data)
+        return SubGen(self.size, self.coef, data)
+    
+    @cached_property
+    def value(self):
+        return round(int.from_bytes(self.bitaray, byteorder='big', signed=False)*self.coef,2)
 
 class Gen(ABC):
     
-    def __init__(self, value:float, max_value:float, min_value:float, shance:float=0.5, coef:float=0.05):
+    def __init__(self, strong_subgene=SubGen(8,0.2), medium_subgene=SubGen(8,0.1), weak_subgene=SubGen(8,0.05)):
         """присвоение значения"""
-        self.value = value
-        self.max_value = max_value
-        self.min_value = min_value
-        self.shance = shance
-        self.coef = coef
+        self.strong_subgene = strong_subgene
+        self.medium_subgene = medium_subgene
+        self.weak_subgene = weak_subgene
         
-    def copy(self) -> "Gen":
-        value = self.value
-        if random.random() <= self.shance:
-            value += np.random.normal(0, self.coef)
-            value = np.clip(value, self.min_value, self.max_value) # Принудительное максимальное значение
-            value = round(value, 2)
-        return self.__class__(value)
+    def reproduct(self):
+        strong_subgene = self.strong_subgene.reproduct()
+        medium_subgene  = self.strong_subgene.reproduct()
+        weak_subgene   = self.strong_subgene.reproduct()
+        return self.__class__(strong_subgene,medium_subgene,weak_subgene)
+    
+    @cached_property
+    def value(self):
+        a = self.strong_subgene.value
+        b = self.medium_subgene.value
+        c = self.weak_subgene.value
+        return round(a+b+c,2)
+
 
 class SizeGen(Gen):
-        def __init__(self, value:float=1, max_value:float=20, min_value:float=0.1):
-            super().__init__(value, max_value, min_value)
+    pass
 
 class SpeedGen(Gen):
-        def __init__(self, value:float=1, max_value:float=50, min_value:float=0.1):
-            super().__init__(value, max_value, min_value)
+    pass
 
 class ColordGen(Gen):
-        def __init__(self, value:str="red", shance:float=0):
-            super().__init__(value,0,0, shance=shance)
+    pass
         
 class ChildrendGen(Gen):
-        def __init__(self, value:float=1, max_value:float=10, min_value:float=1, shance:float=0.1, coef:float = 0.1):
-            super().__init__(value, max_value, min_value, shance, coef)
+    pass
             
 class BatledGen(Gen):
-        def __init__(self, value:float=1, max_value:float=10, min_value:float=0.5, shance:float=0.5, coef:float = 0.1):
-            super().__init__(value, max_value, min_value, shance, coef)    
+    pass 
             
 class GrowthSpeedGen(Gen):
-        def __init__(self, value:float=1, max_value:float=10, min_value:float=1, shance:float=0.5, coef:float = 0.1):
-            super().__init__(value, max_value, min_value, shance, coef)
+    pass
 
 class DNAConstructor():
     
@@ -58,7 +98,7 @@ class DNAConstructor():
         return DNA(gens, self)
     
     def copy(self, dna:Dict[str,Gen]):
-        gens = {name:gen.copy() for name, gen in dna.gens.items()} 
+        gens = {name:gen.reproduct() for name, gen in dna.gens.items()} 
         return DNA(gens, self)      
 
 class DNA():
@@ -89,9 +129,9 @@ class Bacteria():
         pass
     
 if __name__ == "__main__":
-    mask = {"speed":SpeedGen, "size":SizeGen, "color":ColordGen, "children":ChildrendGen, "batle":BatledGen, "growth":GrowthSpeedGen}
+    mask = {"size":SizeGen, "speed":SpeedGen, "color":ColordGen, "children":ChildrendGen, "batle":BatledGen, "growth":GrowthSpeedGen}
     dna_create = DNAConstructor(mask)
     j = dna_create.create()
-    for x in range(100000):
+    for x in range(10):
         j = j.copy()
         print(j)
