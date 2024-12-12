@@ -6,7 +6,12 @@ from bitarray import bitarray
 from copy import deepcopy
 from functools import cached_property
 
+
+
+
 class SubGen:
+    
+    random_segmen_mutate = [bitarray(bin(x)[2:].zfill(3)) for x in range(8)]
     
     def __init__(self, size, coef=0.1, bit = None):
         self.bitaray = bitarray(bin(random.getrandbits(size))[2:].zfill(size)) if bit is None else bit
@@ -20,15 +25,15 @@ class SubGen:
         return data
 
     def segment_mutate(self, data):
-        g =random.randrange(1, self.size-1)
-        data[g-1:g+2] = bitarray(bin(random.getrandbits(3))[2:].zfill(3))
+        h = random.randrange(self.size - 2)
+        data[h:h + 3] = random.choice(SubGen.random_segmen_mutate)
         return data
 
     def segment_invert(self, data):
-        g =random.randrange(1, self.size-2)
-        h = data[g-1:g+2]
-        h.invert()
-        data[g-1:g+2] = h
+        h =random.randrange(self.size - 2)
+        df = data[h:h + 3]
+        df.invert()
+        data[h:h + 3] = df
         return data
     
     def reproduct(self):
@@ -43,11 +48,11 @@ class SubGen:
     
     @cached_property
     def value(self):
-        return round(int.from_bytes(self.bitaray, byteorder='big', signed=False)*self.coef,2)
+        return sum(self.bitaray)*self.coef
 
 class Gen(ABC):
     
-    def __init__(self, strong_subgene=SubGen(8,0.2), medium_subgene=SubGen(8,0.1), weak_subgene=SubGen(8,0.05)):
+    def __init__(self, strong_subgene, medium_subgene, weak_subgene):
         """присвоение значения"""
         self.strong_subgene = strong_subgene
         self.medium_subgene = medium_subgene
@@ -55,16 +60,13 @@ class Gen(ABC):
         
     def reproduct(self):
         strong_subgene = self.strong_subgene.reproduct()
-        medium_subgene  = self.strong_subgene.reproduct()
-        weak_subgene   = self.strong_subgene.reproduct()
+        medium_subgene  = self.medium_subgene.reproduct()
+        weak_subgene   = self.weak_subgene.reproduct()
         return self.__class__(strong_subgene,medium_subgene,weak_subgene)
     
     @cached_property
     def value(self):
-        a = self.strong_subgene.value
-        b = self.medium_subgene.value
-        c = self.weak_subgene.value
-        return round(a+b+c,2)
+        return self.strong_subgene.value+self.medium_subgene.value+self.weak_subgene.value
 
 
 class SizeGen(Gen):
@@ -90,15 +92,14 @@ class DNAConstructor():
     def __init__(self, mask:Dict[str,Gen]):
         self.mask = mask
         
-    def create(self, standart={}):
-        gens = {}
-        for gen_name, gen_cls in self.mask.items():
-            gens[gen_name] = gen_cls()
+    def create(self, sub_size, standart={}):
+        gens = {gen_name: gen_cls(SubGen(sub_size,1),SubGen(sub_size,0.5),SubGen(sub_size,0.25)) for gen_name, gen_cls in self.mask.items()}
         gens.update(standart)
+
         return DNA(gens, self)
     
     def copy(self, dna:Dict[str,Gen]):
-        gens = {name:gen.reproduct() for name, gen in dna.gens.items()} 
+        gens = {name: gen.reproduct() for name, gen in dna.gens.items()}
         return DNA(gens, self)      
 
 class DNA():
@@ -108,10 +109,13 @@ class DNA():
         self.gens = gens
     
     def __str__(self):
-        return "".join([f"{i}: {x.value}\n" for i, x in self.gens.items()])
+        return "\n".join([f"{name}: {gen.value}" for name, gen in self.gens.items()])
     
     def copy(self):
         return self.constructor.copy(self)
+    
+    def summ(self):
+        return sum(gen.value for gen in self.gens.values())
 
 class BacteriaBiology():
     pass
@@ -127,11 +131,14 @@ class Bacteria():
         
     def update(self):
         pass
-    
+
 if __name__ == "__main__":
     mask = {"size":SizeGen, "speed":SpeedGen, "color":ColordGen, "children":ChildrendGen, "batle":BatledGen, "growth":GrowthSpeedGen}
     dna_create = DNAConstructor(mask)
-    j = dna_create.create()
-    for x in range(10):
+    j = dna_create.create(50)
+    makh = 0
+    for x in range(10000000):
         j = j.copy()
-        print(j)
+        if j.summ()>makh:
+            makh = j.summ()
+            print(makh, j)
